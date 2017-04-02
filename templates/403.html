@@ -1,0 +1,21 @@
+{% extends "myapp/base.html" %}
+<!DOCTYPE html>
+<html>
+    <head>
+        {% block extrahead %}
+        {% endblock %}
+    </head>
+    <body>
+    {% block body %}
+    <br>
+    <br>
+       <h2 class="ui icon header">
+        <i class="warning sign orange icon"></i>
+      <div class="content">
+        403 : permission denied
+        <div class="sub header">잘못된 요청입니다. 주소나 로그인 상태를 확인해 주세요.</div>
+      </div>
+    </h2>
+    {% endblock %}
+    </body>
+</html>

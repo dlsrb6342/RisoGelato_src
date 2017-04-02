@@ -1,0 +1,93 @@
+{% extends "myapp/base.html" %}
+{% load rest_framework %}
+{% block extrahead %}
+{% if request.user.is_authenticated %}
+<script>
+function check_pwd(){
+  var targetForm = document.getElementById('user_edit_form');
+  var pw = targetForm.password.value;
+  var pw_check = targetForm.password_check.value;
+  if(pw.length<4){
+    document.getElementById('check_pwd').style.color = "red";
+    document.getElementById('check_pwd').innerHTML = "암호가 너무 짧습니다!"; 
+    document.getElementById('pwd_icon').style.color = "red"; 
+    document.getElementById('pwd_icon_check').className = "red lock icon";
+    }
+  else{
+    if(pw!=pw_check){
+      document.getElementById('check_pwd').style.color = "red";
+      document.getElementById('check_pwd').innerHTML = "동일한 암호를 입력하세요!"; 
+      document.getElementById('pwd_icon').className = "red lock icon"; 
+      document.getElementById('pwd_icon_check').className = "red lock icon";
+      }else{
+      document.getElementById('check_pwd').style.color = "green";
+      document.getElementById('check_pwd').innerHTML = "암호가 확인 되었습니다."; 
+      document.getElementById('pwd_icon').className = "green lock icon"; 
+      document.getElementById('pwd_icon_check').className = "green lock icon";
+    }
+  }
+};
+function get_thumbnail_preivew(html, $target) {
+    if (html.files && html.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            $target.html('<img class="ui centered rounded image" src="' + e.target.result + '" width="150" alt="" />');
+        }
+        reader.readAsDataURL(html.files[0]);
+    }
+}
+</script>
+{% else %}
+<meta http-equiv="refresh" content="0; URL='../../../'" />
+{% endif %}
+{% endblock %}
+{% block body %}
+<div class="ui two column grid">
+    <div class="column">
+    <div id="target_image">
+        <img class="ui fluid centered rounded image" src="http://192.168.1.214:9100{{ user.profile_photo_addr }}" onerror="this.src='/static/pics/irin.jpg'">
+    </div>
+    </div>
+    <div class="column">
+    <form class="ui form" action="/users/{{ user.username }}/edit/" method="POST" enctype="multipart/form-data" id="user_edit_form">
+        <!--
+        유저네임
+        메일은 금지 > 학교 메일 기반이기 때문에
+        비밀 번호 > 현재비번 새 비번 중복체크
+        사진 변경
+        -->
+        {% csrf_token %}
+        <input type="text" name="flag" hidden="true" value="edit">
+        <div class="field">
+            <label >Profile Photo</label>
+            <div class="ui left icon input">
+                <i class="image icon"></i>
+                <input name="profile_photo_addr" id="profile_photo_addr" type="file" accept="image/*" onchange="get_thumbnail_preivew(this,$('#target_image'))"><br>
+            </div>
+        </div>
+        <div class="field">
+            <label >Password</label>
+            <div class="ui left icon input">
+                <i class="lock icon" id="pwd_icon"></i>
+                <input id="password" name="password" class="form-control" type="password" onkeyup="check_pwd()" required><br><br>
+            </div>
+        <div class="field">
+            <div class="ui left icon input">
+                <i class="lock icon" id="pwd_icon_check"></i>
+                <input name="password_check" class="form-control" type="password" onkeyup="check_pwd()" required><br>
+            </div>
+                <label id="check_pwd" style="color:red;"></label>
+        </div>
+        <div class="field">
+            <label >Username</label>
+            <div class="ui left icon input">
+                <i class="rocket icon"></i>
+                <input name="username" class="form-control" type="text" id="username" value="{{user.username}}" required>
+            </div>
+            <label id="result_id_msg"></label>
+        </div>
+        <button class="ui green right floated basic button" type="submit"> Save </button>
+    </form>
+    </div>
+    <br><br>
+{% endblock %}

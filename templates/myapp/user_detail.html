@@ -1,0 +1,71 @@
+{% extends "myapp/base.html" %}
+{% block extrahead %}
+{% if request.user.is_authenticated %}
+    <script type="text/javascript">
+    function with_draw(){
+        var csrftoken = $.cookie('csrftoken');
+        function csrfSafeMethod(method) {
+            // these HTTP methods do not require CSRF protection
+            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+        $.ajax({
+            url: '/',
+            type: 'DELETE',
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(){
+                alert("Bye!");
+                $(location).attr('href', '/');
+            },
+            error: function(error){
+                console.log(error);
+            }
+        });
+    }
+    </script>
+{% else %}
+<meta http-equiv="refresh" content="0; URL='../../../'" />
+{% endif %}
+{% endblock %}
+<!--body-->
+{% block body %}
+    {% if request.user.is_authenticated %}
+       {% if request.user.username == user.username or request.user.id == 1 %}
+        <!--<button id="withdraw", onclick="with_draw()">회원탈퇴</button>-->
+        <div class="ui card">
+          <div class="image">
+            <img src="http://192.168.1.214:9100{{ user.profile_photo_addr }}", width="150", onerror="this.src='/static/pics/irin.jpg'">
+          </div>
+          <div class="content">
+            <a class="header">{{ user.username }}</a>
+            <div class="meta">
+              <a href="/channel/{{ user.username}}/">{{ user.username}}'s Channel</a>
+            </div>
+            <div class="description">
+              <span class="date">Joined in {{user.date_joined}}</span>
+            </div>
+          </div>
+          <div class="extra content">
+            <a href="/users/{{ user.username }}/following/">
+              <i class="user icon"></i>
+              following {{ user.following_count }}
+            </a>
+            <button class="ui right floated basic orange tiny button" onclick = "location.href='/users/{{ user.username }}/edit'">edit</button>
+          </div>
+        </div>
+        {% else %}
+            <h1>You are not allowed!</h1>
+        {% endif %}
+    {% else %}
+        <h1>You are not allowed!</h1>
+    {% endif %}
+{% endblock %}

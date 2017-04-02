@@ -1,0 +1,46 @@
+{% extends "myapp/base.html" %}
+{% load rest_framework %}
+{% block extrahead %}
+{% endblock %}
+<!--body-->
+{% block body %}
+{% if not request.user.is_authenticated %}
+{% if auth %}
+<div class="ui three steps">
+    <div class="completed step">
+        <i class="browser icon"></i>
+        <div class="content">
+          <div class="title">정보 입력</div>
+          <div class="description">회원 정보를 입력</div>
+        </div>
+    </div>
+    <div class="completed step">
+        <i class="mail outline icon"></i>
+        <div class="content">
+          <div class="title">메일 인증</div>
+          <div class="description">학교 메일로 인증</div>
+        </div>
+    </div>
+    <div class="active step">
+        <i class="trophy green icon"></i>
+        <div class="content">
+          <div class="title">가입 완료</div>
+        </div>
+      </div>
+</div>
+<div class="ui divider"></div>
+<h1 class="ui center aligned header">메일 인증이 완료되었습니다. 로그인 하세요</h1>
+{% else %}
+<h2 class="ui icon red header">
+  <i class="settings icon"></i>
+  <div class="content">
+    TIME OUT!
+    <div class="sub header">인증시간이 만료되었습니다.</div>
+  </div>
+</h2>
+{% endif %}
+{% else %}
+    <h1 class="ui center aligned header">You are already signed in!</h1>
+    <a href="/user/logout/" class="ui center aligned red button">logout</a>
+{% endif %}     
+{% endblock %}

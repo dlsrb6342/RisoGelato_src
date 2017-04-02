@@ -1,0 +1,20 @@
+{% extends "myapp/base.html" %}
+
+<!DOCTYPE html>
+{% load rest_framework %}
+<html>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <head>
+        <title>메일 인증 완료</title>
+    </head>
+    {% block content %}
+    {% if not request.user.is_authenticated %}
+    <body>
+        <p>메일 인증이 완료되었습니다. 로그인 하세요</p>
+    </body>
+    {% else %}
+    <h1>You are already signed in!</h1>
+    <a href="/user/logout/" class="button">logout</a>
+    {% endif %}
+    {% endblock %}
+</html>

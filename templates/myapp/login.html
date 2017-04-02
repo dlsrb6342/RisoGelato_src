@@ -1,0 +1,103 @@
+{% extends "myapp/base.html" %}
+{% block extrahead %}
+{% if request.user.is_authenticated %}
+    <meta http-equiv="refresh" content="0; url=../../feed/" />
+{% endif %}
+    <script src="static/js/jsencrypt.min.js"></script>
+    <script>
+        /*function login() {
+            var params = $("#loginform").serialize();
+
+            var encrypt = new JSEncrypt();
+            encrypt.setPublicKey($('#pubkey').text());
+            var encrypted = encrypt.encrypt($('#password').val());
+            
+            params['password'] = encrypted
+
+            $.ajax({
+                type : 'POST',
+                url : '/',
+                data : params,
+                success : function(result) {
+                    $(location).attr('href', '/feed/');
+                },
+                error : function(error) {
+                    alert("이메일이나 패스워드를 확인하세요.");
+                }
+            });
+        }*/
+        $(document).ready(function(){
+            $('#loginform').submit(function(event){
+                var action = $("#loginform").attr('action');
+                
+                var encrypt = new JSEncrypt();
+                encrypt.setPublicKey($('#pubkey').text());
+                var encrypted = encrypt.encrypt($('#password').val());
+                $.ajax({
+                    type : 'POST',
+                    url : action,
+                    data :{
+                        'csrfmiddlewaretoken': '{{ csrf_token }}',
+                        'email': $('#email').val(),
+                        'password': encrypted,
+                    },
+                    success : function(result) {
+                        $(location).attr('href', '/feed/');
+                    },
+                    error : function(error) {
+                        alert("이메일이나 패스워드를 확인하세요.");
+                    }
+                });
+                event.preventDefault();
+            });
+        });
+        function check_pwd(){
+          var signUpForm = document.getElementById('loginform');
+          var pw = signUpForm.password.value;
+          if(pw.length<4){
+            document.getElementById('check_pwd').style.color = "red";
+            document.getElementById('check_pwd').innerHTML = "암호가 너무 짧습니다!"; 
+            document.getElementById('pwd_icon').className = "red lock icon"; 
+            }
+          else{
+            document.getElementById('check_pwd').style.color = "green";
+            document.getElementById('check_pwd').innerHTML = "길이가 적당해졌다!"; 
+            document.getElementById('pwd_icon').className = "green lock icon"; 
+          }
+        };
+
+    </script>
+{% endblock %}
+<!--body-->
+{% block body %}
+{% if not request.user.is_authenticated %}
+    <p id="pubkey" hidden="True">-----BEGIN PUBLIC KEY-----
+    MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCwou4gnIrKDuoA4M2kSUWpHBF9
+    TO0FYa8tFEoiPc3jAHlzoc82YHJ9YGNMwWwpUgqGnthSJLODaU9dLugOCp3cI63H
+    rb8JHzAr6/aB1CVwVKpVLPBJbMq4nuxBcdb+2SGiiTTqbL+dH+1u0Ku564vizeCc
+    /Oc9r/jtBJF/D+5r2wIDAQAB
+    -----END PUBLIC KEY-----</p>
+    <img class="ui centered responsive image" src="/static/pics/RisoGelato_lobster.png"/>
+    <p></p>
+    <!--login form-->
+    <form id="loginform" class="ui form" method="post">
+        <div class="field">
+            <label for="email">Email</label>
+            <div class="ui left icon input">
+                <input name="email" type="email" id="email" placeholder="Email" required>
+                <i class="mail outline icon"></i>
+            </div>
+        </div>
+        <div class="field">
+            <label for="password">Password</label>
+            <div class="ui left icon input">
+                <input name="password" type="password" id="password" placeholder="Password" onkeyup="check_pwd()" required>
+                <i class="lock icon" id="pwd_icon"></i>
+            </div>
+            <label id="check_pwd"></label>
+        </div>
+            <button class="ui right floated primary button" type="submit" id="loginbutton">로그인</button>
+    </form>
+            <button class="ui right floated teal button" onclick="location.href='/user/register/'">회원가입</button>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'myapp/base.html' %}
+{% block extrahead %}
+<title>Search!</title>
+<script type="text/javascript">
+    var search_scroll = true
+    $(document).ready(function(){
+        $('#id_q').keyup(function(){
+            if($('#id_q').val()=='') {
+                $('#SearchResult').html('')
+                return;
+            }
+            $.ajax({
+                type: 'POST',
+                url: '/search/',
+                data: {
+                    'flag': 'search',
+                    'q': $('#id_q').val(),
+                    'csrfmiddlewaretoken': '{{csrf_token}}'
+                },
+                success : function(result) {
+                    if(result['flag']){
+                        var res_list = result['results']
+                        search_scroll = result['next_page']
+                        var string = ''
+                        for(i = 0; i < res_list.length; i ++){
+                            var res = res_list[i]
+                            if (res.Title != null)
+                                string += '<p><a class="item" href="/posts/'+ res.id + '"><div class="ui violet horizontal label">post</div>'+res.Title+'</a></p>'
+                            else if (res.Admin != null)
+                                string += '<p><a class="item" href="/channel/'+ res.Admin + '"><div class="ui pink horizontal label">channel</div>'+res.Admin+'</a></p>'
+                            else if (res.Name != null)
+                                string += '<p><a class="item" href="/tag/'+ res.Name.substring(1, res.Name.length) + '"><div class="ui red horizontal label">tag</div>'+res.Name+'</a></p>'
+                        }
+                        $("#SearchResult").html(string)
+                    }
+                }
+            })
+        })
+    })
+    $(document).scroll(function(e){
+        if(search_scroll == false){
+            return
+        }
+        // grab the scroll amount and the window height
+        var scrollAmount = $(window).scrollTop();
+        var documentHeight = $(document).height();
+        // calculate the percentage the user has scrolled down the page
+        var scrollPercent = (scrollAmount / documentHeight) * 100;
+        console.log(scrollPercent)
+        if(scrollPercent > 10 && search_scroll) {
+            search_scroll = false
+            $.ajax({
+                url: '/search/',
+                type: 'POST',
+                data: {
+                    'flag': 'search-scrolling',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(result){
+                    if(result['flag']){
+                        var res_list = result['results']
+                        search_scroll = result['next_page']
+                        var string = ''
+                        for(i = 0; i < res_list.length; i ++){
+                            var res = res_list[i]
+                            if (res.Title != null)
+                                string += '<p><a class="item" href="/posts/'+ res.id + '"><div class="ui violet horizontal label">post</div>'+res.Title+'</a></p>'
+                            else if (res.Admin != null)
+                                string += '<p><a class="item" href="/channel/'+ res.Admin + '"><div class="ui pink horizontal label">channel</div>'+res.Admin+'</a></p>'
+                            else if (res.Name != null)
+                                string += '<p><a class="item" href="/tag/'+ res.Name.substring(1, res.Name.length) + '"><div class="ui red horizontal label">tag</div>'+res.Name+'</a></p>'
+                        }
+                        $("#SearchResult").append(string)
+                    }
+                }
+            })
+        }
+    });
+</script>
+{% endblock %}
+{% block body %}
+<div>
+    <label class="ui big blue label" for="id_q">Search:</label>
+    <br>
+    <br>
+    <div class="ui icon input">
+        <input type="text" placeholder="Search..." id="id_q" name="q" type="search"/>
+        <i class="search icon"></i>
+    </div>
+    <div class="ui divider"></div>
+    <label class="ui large green label" for="SearchResult">results:</label>
+    <br>
+    <br>
+    <div id="SearchResult"></div>
+</div>
+{% endblock %}

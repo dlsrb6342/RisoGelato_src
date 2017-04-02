@@ -1,0 +1,37 @@
+{% extends "myapp/base.html" %}
+{% load rest_framework %}
+{% block extrahead %}
+{% if request.user.is_authenticated %}
+<script>
+function get_thumbnail_preview(html, $target) {
+    if (html.files && html.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            $target.html('<img class="ui large centered rounded image" src="' + e.target.result + '" />');
+        }
+        reader.readAsDataURL(html.files[0]);
+    }
+}
+</script>
+{% else %}
+<meta http-equiv="refresh" content="0; URL='../../../'" />
+{% endif %}
+{% endblock %}
+{% block body %}
+    <form class="ui form" action="/channel/{{ Channel.admin }}/edit/" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div id="target_image">
+        <img class="ui large centered rounded image" src="http://192.168.1.214:9100{{ user.profile_photo_addr }}" onerror="this.src='/static/pics/irin.jpg'">
+        </div>
+        <div class="field">
+            <label for="Intro">Intro </label>
+            <input type="text" name="intro" id="Intro" value="{{ Channel.intro }}">
+        </div>
+        <div class="field">
+            <label for="file">Channel's Image</label>
+            <input name="profile_photo_addr" type="file" accept="image/*" onchange="get_thumbnail_preview(this,$('#target_image'))">
+        </div>
+        <button class="ui green right floated basic button" type="submit"> Save </button>
+    </form>
+    <br><br>
+{% endblock %}

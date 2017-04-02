@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--meta-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <!--css and fonts -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/semantic-ui/2.2.7/semantic.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+    <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/nanummyeongjo.css">
+    <link rel="manifest" href="/static/js/manifest.json">
+    <!--jquery and  semantic scripts-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="/static/js/jquery.cookie.js"></script>
+    <script src="/static/js/jquery.timeago.js"></script>
+    <!--<script src="/static/js/base.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/semantic-ui/2.2.7/semantic.min.js"></script>
+    <!--custom style-->
+     <script>
+     var noti_timer_id=0;
+      $(document)
+        .ready(function() {
+            update_noti();
+          $('.ui.menu .ui.dropdown').dropdown({
+            on: 'click'
+          });
+          $('.ui.menu a.item')
+            .on('click', function() {
+              $(this)
+                .addClass('active')
+                .siblings()
+                .removeClass('active')
+              ;
+            })
+          ;
+          $('#bluechip')
+             .popup({
+            on: 'hover',
+            delay: {
+                  show: 50,
+                  hide: 2000
+                },
+            onVisible  : function(){clearInterval(noti_timer_id); },
+            onHidden: function(){noti_timer_id=setInterval("update_noti()",300000)} 
+            })      
+          ;
+          $('#bluechipM')
+             .popup({
+            on: 'hover',
+            delay: {
+                  show: 50,
+                  hide: 2000
+                },
+            onVisible  : function(){clearInterval(noti_timer_id);}, 
+            onHidden: function(){noti_timer_id=setInterval("update_noti()",300000)} 
+            })
+          ;
+          noti_timer_id=setInterval("update_noti()",300000);
+          $('.ui.page.grid').mouseenter(function(){
+            update_noti();
+          })
+        });
+        function update_noti(){
+                $.ajax({
+                type:'POST',
+                url : '/notification/',
+                data : {
+                    'flag' : 'noti',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                },
+                success : function(result) {
+                    var targetHTML="";
+                    var feedLength=Object.keys(result['data']).length;
+                    var feedList= new Array();
+                    var urlList= new Array();
+                    //첫번째 인덱스: 사람 ,두번째인덱스 : 주소 vs Json , 세번째 인덱스 : 순서 !
+                    targetHTML+="<div class=\"ui feed\" name=\"noti_feed\">"
+                    for(i=0;i<feedLength;i++){feedList[i]=result['data'][i][1];}
+                    for(i=0;i<feedLength;i++){urlList[i]=result['data'][i][0]['url'];}
+                    for(i=0;i<feedLength;i++){targetHTML+=draw_item(feedList[i],urlList[i])}
+                    
+                    targetHTML+="</div>"
+
+                    if(result['next_page']){
+                        targetHTML+="<div class=\"ui button event\" onclick=\"more_noti("+pk+")\" name=\"more_noti_button\"><div class=\"content\"><div class=\"summary\">소식 더 듣기</div></div>"
+                    }
+                   
+                        $('#bluechip').attr('data-html',targetHTML);
+                        $('#bluechipM').attr('data-html',targetHTML);
+                    },
+                error : function(error) {}
+                })
+            }
+            function more_noti(pk){
+                 $.ajax({
+                type:'POST',
+                url : '/notification/',
+                data : {
+                    'pk':pk,
+                    'flag' : 'noti-scrolling',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                },success : function(result){
+                    var targetHTML="";
+                    var feedLength=Object.keys(result['data']).length;
+                    var feedList= new Array();
+                    var urlList= new Array();
+                    for(i=0;i<feedLength;i++){feedList[i]=result['data'][i][1];}
+                    for(i=0;i<feedLength;i++){urlList[i]=result['data'][i][0]['url'];}
+                    for(i=0;i<feedLength;i++){targetHTML+=draw_item(feedList[i],urlList[i])}
+                    // noti append
+                    $('div[name="noti_feed"]').append(targetHTML);
+                    //noti
+                    next_page = result['next_page']
+                    if(next_page != true){
+                        $("div[name='more_noti_button']").html("")
+                    }
+                },error:function(error){}
+                });
+            }
+            function draw_item(feed_list, url){
+                var noti_item="";
+            
+                if(feed_list[2]=='like'){
+                    noti_item+="<div onclick=\"window.location.href='"+url+"'\" class=\"ui button event\"><div class=\"label\"><i class=\"thumbs up icon\"></i></div>";
+                }
+                else if(feed_list[2]=='comment'){
+                    noti_item+="<div onclick=\"window.location.href='"+url+"'\" class=\"ui button event\"><div class=\"label\"><i class=\"comments outline icon\"></i></div>";
+                }
+                else //feedList[i][2]==follow
+                {
+                    noti_item+="<div onclick=\"window.location.href='"+url+"'\" class=\"ui button event\"><div class=\"label\"><i class=\"feed icon\"></i></div>";
+                }
+                //targetHTML+=feedList[i][2]; //타입 follow, like,comment
+                    noti_item+="<div class=\"content\"><div class=\"summary\">"+feed_list[0]+"</div>"; //텍스트
+                ///////////////////////////////////////////////////////
+                if(feed_list[2]=='like'){
+                    noti_item+="<div class=\"meta\"><i class=\"like icon\"></i>"+feed_list[1]+"개의 좋아요</div></div>" //숫자
+                }
+                else if(feed_list[2]=='comment'){
+                    noti_item+="<div class=\"meta\"><i class=\"comments icon\"></i>"+feed_list[1]+" 명의 댓글</div></div></div>"//div1=meta div2=content div3=event
+                }
+                else //feedList[i][2]==follow
+                {
+                    "</div></div>" //meta 가 없음
+                }
+                return noti_item;
+            }
+        function like_list(pk) {
+        $.post("/posts/"+pk+"/likes/",
+            {
+                'flag': 'likelist', 
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            function(result) {
+                $('.content#modal_content').html('')
+                $('.content#comment-div').html('')
+                likers = result['likers']
+                next_page = result['next_page']
+                for (var i = 0; i < likers.length; i++) {
+                    $('.content#modal_content').append(
+                        '<div class="ui three column grid">'+
+                            '<div class="center aligned column">'+
+                                '<i class="thumbs up icon"></i>좋아하는 사람!'+
+                            '</div>'+
+                            '<div class="center aligned column">'+
+                                likers[i]+
+                            '</div>'+
+                            '<div class="center aligned column">'+
+                                '<a href="/channel/'+likers[i]+'/"><i class="feed icon"></i>채널로 가보기!</a>'+
+                            '</div>'+
+                        '</div>'
+                        )
+                }
+                if(next_page){
+                    $('.content#comment-div').append('<div id="more-liker"><button class="ui basic blue fluid button" onclick="more_like_list('+pk+')">더 불러오기</button></div><br>')
+                }
+                $('.ui.small.modal').modal('show');
+            }
+        );
+    }
+    function more_like_list(pk) {
+        $.post("/posts/"+pk+"/likes/",
+            {
+                'flag': 'likelist-scrolling', 
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            function(result) {
+                likers = result['likers']
+                next_page = result['next_page']
+                for (var i = 0; i < likers.length; i++) {
+                    $('.content#modal_content').append(
+                        '<div class="ui three column grid">'+
+                            '<div class="center aligned column">'+
+                                '<i class="thumbs up icon"></i>좋아하는 사람!'+
+                            '</div>'+
+                            '<div class="center aligned column">'+
+                                likers[i]+
+                            '</div>'+
+                            '<div class="center aligned column">'+
+                                '<a href="/channel/'+likers[i]+'/"><i class="feed icon"></i>채널로 가보기!</a>'+
+                            '</div>'+
+                        '</div>'
+                        )
+                }
+                next_page = result['next_page']
+                if(next_page != true){
+                    $("#more-liker").html("")
+                }
+            }
+        );
+    }
+        jQuery.timeago.settings.strings.suffixAgo= ' 전';
+        jQuery.timeago.settings.strings.inPast= '방금';
+        jQuery.timeago.settings.strings.seconds= '몇 초';
+        jQuery.timeago.settings.strings.minute= '1 분';
+        jQuery.timeago.settings.strings.minutes= '%d 분';
+        jQuery.timeago.settings.strings.hour= '1 시간';
+        jQuery.timeago.settings.strings.hours= '%d 시간';
+        jQuery.timeago.settings.strings.day= '하루';
+        jQuery.timeago.settings.strings.days= '%d 일';
+        jQuery.timeago.settings.strings.month= '한 달';
+        jQuery.timeago.settings.strings.months= '%d 달';
+        jQuery.timeago.settings.strings.year= '일년';
+        jQuery.timeago.settings.strings.years= '%d년';
+  </script>
+    <style>
+    .main.container{
+        margin-top: 6em;
+    }
+    </style>
+    <!--extra head block-->
+    {% block extrahead %}{% endblock %}
+</head>
+<body>
+<!--navbar-->
+<div class="ui page grid">
+    <!--navbar for comput and tablet -->
+    <div class="computer tablet only row">
+        <div class="ui fixed menu navbar">
+            <div class="ui container">
+                {% if request.user.is_authenticated %}
+                    <a class="brand item" onclick="window.location.href='/feed'" style="font-family: 'Lobster', cursive; font-size: 1.5em;">RisoGelato</a>
+                    <a class="item" onclick="window.location.href='/users/{{user.username}}'" >UserInfo</a>
+                    <a class="item" onclick="window.location.href='/feed'">Feed</a>
+                    <a class="item" onclick="window.location.href='/posts/new'">NewPost</a>
+                {% else %}
+                    <div class="brand item" onclick="window.location.href='/'" style="font-family: 'Lobster', cursive; font-size: 1.5em;">RisoGelato</div>
+                {% endif %}
+                {% if request.user.is_authenticated %}
+                <a class="item" onclick="window.location.href='/search'">search<i class="search icon"></i></a>
+                {% else %}
+                {% endif %}
+                <div class="right menu">
+                    {% if request.user.is_authenticated %}
+                        <a class="item" id="bluechip" data-html="RisoGelato" data-position="bottom right" data-variation="very wide"><i class="borderd big blue alarm outline icon"></i></a>
+                        <a class="item"  onclick="window.location.href='/user/logout/'" style="font-family: 'Lobster', cursive; font-size: 1em;">Sign Out</a>
+                    {% else %}
+                        <a class="item"  onclick="window.location.href='/'" style="font-family: 'Lobster', cursive; font-size: 1em;">Sign In</a>
+                    {% endif %}
+                </div>        
+            </div>
+        </div>
+    </div>
+    <!--navbar for mobile -->
+    <div class="mobile only narrow row">
+        <div class="ui fixed menu navbar">
+            <div class="ui container">
+                <div class="brand item" onclick="window.location.href='/feed'" style="font-family: 'Lobster', cursive; font-size: 1.5em; font-color:orange">RisoGelato</div>
+                <div class="right menu">
+                {% if request.user.is_authenticated %}
+                    <a class="item" id="bluechipM" data-html="RisoGelato" data-position="bottom right" data-variation="very wide"><i class="borderd big blue alarm outline icon"></i></a>    
+                {% else %}
+                {% endif %}
+                    <div class="ui dropdown item">
+                        <i class="content icon"></i>
+                        <div class="menu">
+                         {% if request.user.is_authenticated %}
+                          <div class="item button" onclick="window.location.href='/users/{{user.username}}'" >UserInfo</a></div>
+                          <div class="item button" onclick="window.location.href='/feed'">Feed</div>
+                          <div class="item button" onclick="window.location.href='/posts/new'">NewPost</a></div>
+                          <div class="item button" onclick="window.location.href='/user/logout/'" style="font-family: 'Lobster', cursive; font-size: 1em;">Sign Out</div>
+                          {% else %}
+                            <div class="item button" onclick="window.location.href='/'" style="font-family: 'Lobster', cursive; font-size: 1em;">Sign In</div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    
+                </div>        
+            </div>
+        </div>
+        <div class="right menu open">
+            <a href="" class="menu item">
+                <i class="reorder icon"></i>
+            </a>
+        </div>  
+    </div> 
+</div>
+<!--end of navbar-->
+<!--page contents here-->
+<div class="ui main text container">
+    {% block body %}{% endblock %}
+</div>
+</body>
+</html>

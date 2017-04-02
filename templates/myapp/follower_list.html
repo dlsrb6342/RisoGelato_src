@@ -1,0 +1,22 @@
+{% extends "myapp/base.html" %}
+{% block extrahead %}
+{% endblock %}
+{% block body %}
+	<h1 class="ui header">followers</h1>
+	<div class="ui divider"  style="max-width: 34em;"></div>
+	<div class="ui divided items" style="max-width: 30em;">
+		{% for follower in data.followers %}
+			{% if follower == channel_admin %}
+			{% else %}
+			<div class="item">
+				<div class="image">
+					<a href="../../../channel/{{follower}}"><i class="feed blue icon"></i></a>
+				</div>
+			    <div class="middle aligned content">
+			    	<a href="/channel/{{follower}}/">{{follower}}</a>
+			    </div>
+		  	</div>
+		  	{% endif %}
+		{% endfor %}
+	</div>	
+{% endblock %}

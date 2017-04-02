@@ -1,0 +1,190 @@
+{% extends "myapp/base.html" %}
+{% load rest_framework %}
+{% block extrahead %}
+    <script src="/static/js/jsencrypt.min.js"></script>
+    <script type="text/javascript">
+        var CheckID = false;
+        var CheckEmail = false;
+        $(document).ready(function(){
+            $('#password').attr('type', 'password');
+            var checkAjaxSetTimeout;
+            $('#username').keyup(function(){
+                clearTimeout(checkAjaxSetTimeout);
+                var idReg = /^[0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ._@]{4,15}$/u;
+                checkAjaxSetTimeout = setTimeout(function(){
+                    if (idReg.test($("#username").val())) {
+                        var username = $("#username").val();
+                        // ajax 실행
+                        $.ajax({
+                            type : 'POST',
+                            url : '/user/checkid/',
+                            data:
+                            {
+                                'username': username
+                            },
+                            success : function(result) {
+                                if (result['result'] == true) {
+                                    $("#result_id_msg").html("사용 가능한 아이디 입니다.");
+                                    CheckID = true;
+                                } else {
+                                    $("#result_id_msg").html("사용 불가능한 아이디 입니다.");
+                                    CheckID = false;
+                                }
+                            }
+                        }); // end ajax
+                    } else {
+                        $("#result_id_msg").html("아이디는 4~15자 영문자, 한글, 숫자 또는 ., _, @로 구성되어야 합니다.");
+                        CheckID = false;
+                    }
+                }, 500 ); //end setTimeout
+            }); // end keyup
+            $('#email').keyup(function(){
+                clearTimeout(checkAjaxSetTimeout);
+                checkAjaxSetTimeout = setTimeout(function(){
+                    var email = $("#email").val();
+                    // ajax 실행
+                    $.ajax({
+                        type : 'POST',
+                        url : '/user/checkemail/',
+                        data:
+                        {
+                            'email': email
+                        },
+                        success : function(result) {
+                            if (result['result'] == true) {
+                                console.log("good email");
+                                CheckEmail = true;
+                            } else {
+                                console.log("duplicated email");
+                                CheckEmail = false;
+                            }
+                        }
+                    }); // end ajax
+                }, 500 ); //end setTimeout
+            }); // end keyup
+        });
+        function sign_up() {
+            if (CheckID == false) {
+                alert('아이디를 확인하세요.');
+                return false;
+            }
+            if (CheckEmail == false) {
+                alert('이미 존재하는 이메일입니다.');
+                return false;
+            }
+            var encrypt = new JSEncrypt();
+            encrypt.setPublicKey($('#pubkey').text());
+            var encrypted = encrypt.encrypt($('#password').val());
+
+            $.ajax({
+                type : 'POST',
+                url : '/user/auth/',
+                data : {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'username': $('#username').val(),
+                    'password': encrypted,
+                    'email': $('#email').val(),
+                    'profile_photo_addr': $('#profile_photo_addr').val(),
+                },
+                success: function(result) {
+                    $(location).attr('href', '/user/auth/')
+                }
+            })
+            return false;
+        };
+        function check_pwd(){
+          var targetForm = document.getElementById('signup_form');
+          var pw = targetForm.password.value;
+          var pw_check = targetForm.password_check.value;
+          if(pw.length<4){
+            document.getElementById('check_pwd').style.color = "red";
+            document.getElementById('check_pwd').innerHTML = "암호가 너무 짧습니다!"; 
+            document.getElementById('pwd_icon').className = "red lock icon"; 
+            document.getElementById('pwd_icon_check').className = "red lock icon";
+            }
+          else{
+            if(pw!=pw_check){
+              document.getElementById('check_pwd').style.color = "red";
+              document.getElementById('check_pwd').innerHTML = "동일한 암호를 입력하세요!"; 
+              document.getElementById('pwd_icon').className = "red lock icon"; 
+              document.getElementById('pwd_icon_check').className = "red lock icon";
+              }else{
+              document.getElementById('check_pwd').style.color = "green";
+              document.getElementById('check_pwd').innerHTML = "암호가 확인 되었습니다."; 
+              document.getElementById('pwd_icon').className = "green lock icon"; 
+              document.getElementById('pwd_icon_check').className = "green lock icon";
+            }
+          }
+        };
+        
+    </script>
+{% endblock %}
+<!--body-->
+{% block body %}
+    {% if not request.user.is_authenticated %}
+        <p id="pubkey" hidden="True">-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDFUlsFS/9JHjcI31ToUzaintux
+tASKlHTy8rqAO/aC6okRyjN/FP5fmkUFH+a+kVrfdWdSjVJfs+XRM394CmuqkF59
+AMF3eN+5VYo9w2m33gun+woLNE0nfKagm1tl+KyLMVXnCxzHZofpXsHnHn7qPt9A
+E02QhnvQaTc0r3E11wIDAQAB
+-----END PUBLIC KEY-----</p>
+        <!--steps-->
+        <div class="ui three steps">
+          <div class="active step">
+            <i class="browser icon"></i>
+            <div class="content">
+              <div class="title">정보 입력</div>
+              <div class="description">회원 정보를 입력</div>
+            </div>
+          </div>
+          <div class="diabled step">
+            <i class="mail outline icon"></i>
+            <div class="content">
+              <div class="title">메일 인증</div>
+              <div class="description">학교 메일로 인증</div>
+            </div>
+          </div>
+          <div class="disabled step">
+            <i class="trophy icon"></i>
+            <div class="content">
+              <div class="title">가입 완료</div>
+            </div>
+          </div>
+        </div>
+        <!--steps-->
+        <form id="signup_form" class="ui form" action="/user/auth/" method="POST" enctype="multipart/form-data" onsubmit="return sign_up()">
+            {% csrf_token %}
+            <div class="field">
+                <label >Email address</label>
+                <div class="ui left icon input">
+                    <i class="mail outline icon"></i>
+                    <input name="email" class="form-control" type="email" id="email" required>
+                </div>
+            </div>
+            <div class="field">
+                <label >Username</label>
+                <div class="ui left icon input">
+                    <i class="rocket icon"></i>
+                    <input name="username" class="form-control" type="text" id="username" required>
+                </div>
+                <label id="result_id_msg"></label>
+            </div>
+            <div class="field">
+                <label >Password</label>
+                <div class="ui left icon input">
+                    <i class="lock icon" id="pwd_icon"></i>
+                    <input id="password" name="password" class="form-control" type="password" onkeyup="check_pwd()" required><br><br>
+                </div>
+            <div class="field">
+                <div class="ui left icon input">
+                    <i class="lock icon" id="pwd_icon_check"></i>
+                    <input name="password_check" class="form-control" type="password" onkeyup="check_pwd()" required><br>
+                </div>
+                        <label id="check_pwd" style="color:red;"></label>
+            </div>
+            <button class="ui right floated basic primary button" type="submit">submit</button>
+        </form>
+    {% else %}
+        <h1>You are already signed in!</h1>
+    {% endif %}
+{% endblock %}

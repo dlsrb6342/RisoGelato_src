@@ -1,0 +1,127 @@
+{% extends "myapp/base.html" %}
+{% load rest_framework %}
+{% block extrahead %}
+{% if request.user.is_authenticated %}
+    <script>
+        $(document).ready(function(){
+            console.log("{{Follow}}")
+            $("#follow").click(function(){
+                if($("#follow").attr("aria-pressed") == "false"){
+                    $("#follow").attr("class", "ui blue button");
+                    $("#follow").attr("aria-pressed", "true");
+                    $.post("/channel/{{Channel.admin}}/",
+                        {
+                            'flag':'follow',
+                            'csrfmiddlewaretoken': '{{ csrf_token }}'
+                        },
+                        function(result) {
+                            $("#FollowerCount").html(result['FollowerCount'])
+                        }
+                    );
+                }
+                else{
+                    $("#follow").attr("aria-pressed", "false");
+                    $("#follow").attr("class", "ui grey button");
+                    $.post("/channel/{{Channel.admin}}/",
+                        {
+                            'flag':'unfollow',
+                            'csrfmiddlewaretoken': '{{ csrf_token }}'
+                        },
+                        function(result) {
+                            $("#FollowerCount").html(result['FollowerCount'])
+                        }
+                    );
+                }
+            });
+        });
+    </script>
+{% else %}
+<meta http-equiv="refresh" content="0; URL='../../../'" />
+{% endif %}
+{% endblock %}
+{% block body %}
+{% if request.user.is_authenticated %}
+    <a href="../../channel/{{Channel.admin}}/" >
+        <img class="ui centered rounded image" src="http://192.168.1.214:9100{{ Channel.profile_photo_addr }}" onerror="this.src='/static/pics/irin.jpg'" style="max-height: 400px">
+    </a>
+    <div class="ui items">
+        <div class="item">
+        <div class="content">
+        <!--header-->
+        <a class="ui huge header" style="font-family: lobster;"><b>{{Channel.admin}}'s Channel</b></a>
+        <!-- divider-->
+        <div class="ui horizontal divider"><i class="sound icon"></i></div>
+        <!-- channel's intro-->
+        <div class="description">
+            <h3>{{Channel.intro}}</h3>
+        </div>
+        <div class="ui horizontal divider"><i class="music icon"></i></div>
+        <div class="extra">
+            {% if Follow == 0 %}
+            <div class="ui labeled button" tabindex="0">
+                <div class="ui grey button" aria-pressed="false" id="follow">
+                    <i class="feed icon"></i>Follow
+                </div>
+                <a class="ui basic blue left pointing label" href="/channel/{{Channel.admin }}/followers/" id="FollowerCount">
+                    {{Channel.follower_count}}
+                </a>
+            </div>
+            {% elif Follow == 1 %}
+            <div class="ui labeled button" tabindex="0" >
+                <div class="ui blue button" aria-pressed="true" id="follow">
+                    <i class="feed icon"></i>Follow
+                </div>
+                <a class="ui basic blue left pointing label" href="/channel/{{Channel.admin }}/followers/" id="FollowerCount">
+                    {{Channel.follower_count}}
+                </a>
+            </div>
+            {% else %}
+            <div class="ui labeled button" tabindex="0">
+                <div class="ui blue button" aria-pressed="true">
+                    <i class="feed icon"></i>Follow
+                </div>
+                <a class="ui basic blue left pointing label" href="/channel/{{Channel.admin }}/followers/" id="FollowerCount">
+                    {{Channel.follower_count}}
+                </a>
+            </div>
+            <button class="ui yellow right floated button" id="edit-channel" onclick = "location.href='/channel/{{ Channel.admin }}/edit'">Edit</button>
+            {% endif %}
+        </div>
+        </div>
+        </div>
+    </div>
+    <div class="ui horizontal divider"><i class="star icon"></i></div>
+    <!-- Channel's Posts-->
+    <div class="ui comments">
+    {% for p in Posts %}
+    <div class="comment">
+        <a class="avatar">
+            <i class="star icon"></i>
+        </a>
+        <div class="content">
+            <a class="author" onclick="location.href='/posts/{{p.id}}/'">
+                {{ p.title }}
+            </a>
+            <div class="metadata">
+            <div class="date" >{{p.created_at}}</div>
+                    <div class="rating" onclick="LikeList({{post.id}})">
+                      <i class="thumbs up icon"></i>
+                      {{p.like_count}}
+                    </div>
+            </div>
+            <div class="text">
+                {{ p.text }}
+            </div>
+            <div class="actions">
+                <a class="edit">Edit</a>
+                <a class="delete">Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+   
+<!-- auth part-->
+{% else %}
+{% endif %}
+{% endblock %}

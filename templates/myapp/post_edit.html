@@ -1,0 +1,122 @@
+{% extends "myapp/base.html" %}
+{% load rest_framework %}
+{% block extrahead %}
+<script>
+var CheckTag = false;
+var tag_list="";
+
+var csrf = '{{ csrf_token }}'
+$(document).ready(function(){
+    $('#tag_string').keyup(function(e){
+        var tag_list_before= document.getElementById('tag_string').value;
+        var tag_list = tag_list_before.split('#');
+        var tag_list_after= Array();
+        var tagReg = /^[0-9|a-z|A-Z|가-힣|ㄱ-ㅎ|ㅏ-ㅣ|_|!|?]{1,10}$/u;
+        var tagTest=true;
+        CheckTag=true;
+        //tag_list.trim()
+        for(i=0;i<tag_list.length-1;i++){
+            tag_list_after[i]=tag_list[i+1].trim();;
+        }
+        console.log(tag_list_after)
+        for(i = 0; i < tag_list_after.length; i++){
+            var tagString=String(tag_list_after[i]);
+            tagTest=tagReg.test(tagString);
+            //console.log(CheckTag+" : "+tagTest);
+            CheckTag = CheckTag && tagTest;
+        }
+        //if CheckTag is false....!
+        if(CheckTag){
+            $('#result_rcmd_msg').html('가능한 태그입니다.');
+        }
+        else{
+            $('#result_rcmd_msg').html('부적절한 태그형식 입니다. 태그형식은 #태그1 #태그2');
+        }
+
+        if(e.keyCode==32){
+        var tag_list_send=tag_list;
+        if(CheckTag){
+            for(i=1; i<tag_list.length; i++){
+                tag_list_send[i-1]= '#'+tag_list[i].trim();
+            }
+            tag_list_send.splice(tag_list.length-1,1);
+            $.ajax({
+                type:'POST',
+                url : '/recommend/',
+                data : {
+                    'csrfmiddlewaretoken': csrf,
+                    'flag' : 'tag',
+                    'tag_list': tag_list_send,
+                },
+                success : function(result) {
+                    var rcmd_list=result['recommend_tag_list'];
+                    var rcmdHTML="";
+                    for(i=0 ;i < rcmd_list.length;i++){
+                        rcmdHTML+="<a class=\"ui  tag label\" onclick=\"add_string('"+rcmd_list[i]+"')\">"+rcmd_list[i]+"</a>";
+                    }
+                    $('#result_rcmd_msg').html(rcmdHTML);
+                    },
+                error : function(error) {
+                }
+            });
+        }};
+    });
+    $('#post_newform').submit(function(){
+        if(CheckTag){
+            return true;
+        } else{
+            alert("태그 형식 확인해주세요!");
+            return false;
+        }
+
+    });//postnewformsubmit
+});
+function add_string(i){
+    document.getElementById('tag_string').value+=i;
+};
+
+</script>
+{% if request.user.is_authenticated %}
+{% else %}
+<meta http-equiv="refresh" content="0; URL='../../../'" />
+{% endif %}
+{% endblock %}
+<!--body-->
+{% block body %}
+{% if request.user.username == post.created_by %}
+    <img class="ui centered responsive image" src="http://192.168.1.214:9100{{ post.thumbnail_addr }}"><br><br>
+    <!--like facebook, we don't support post pic change.-->
+    <form class="ui form" action="/posts/{{ pk }}/" method="POST" enctype="multipart/form-data" id="post_newform">
+        {% csrf_token %}
+        <input type="text" name="flag" hidden="true" value="edit">
+        <div class="field">
+            <label>Title </label>
+            <div class="ui left icon input">
+                <i class="hand pointer icon"></i>
+                <input type="text" name="title" id="title" value="{{ post.title }}">
+            </div>
+        </div>
+        <!-- Text-->
+        <div class="field">
+            <label>Text </label>
+            <div class="ui left icon input">
+                <i class="content icon"></i>
+                <input type="text" name="text" id="text" value="{{ post.text }}">
+            </div>
+        </div>
+        <!--Tags-->
+        <div class="field">
+            <label>Tags</label>
+            <div class="ui left icon input">
+                <i class="tags icon"></i>
+                <input class="form-control" placeholder="#" type="text" name="tag_string" id="tag_string" value="{{ post.tag_string }}">
+            </div>
+            <br>
+            <br>
+            <div id="result_rcmd_msg"></div>
+        </div>
+        <input class="ui right floated basic submit button" type="submit" value="Save"></input>
+    </form>
+{% else %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "myapp/base.html" %}
+{% block extrahead %}
+<script>
+var following_scroll = false
+if ("{{ next_page }}" == 'True'){
+    following_scroll = true;
+}
+var recommends=Array ();
+var recommends_index=3;
+
+{% for recommend in recommend_follow_list %}
+    recommends.push("{{recommend}}");
+{% endfor %}
+
+console.log(recommends);
+
+function refresh_follow(rcmd){
+    if(recommends_index<recommends.length){
+        var rcmd_change=recommends[recommends_index];
+        $('#refresh_target_'+rcmd).html(
+            '<div class="ui center aligned segment">'+
+                '<div class="floating ui basic label" onclick="refresh_follow(\''+rcmd_change+'\')"><i class="delete icon"></i></div>'+
+                '<i class="user icon"></i>'+
+                rcmd_change+
+                '<br><div class="ui blue basic label" id="recommend_'+rcmd_change+'" onclick="follow_button(\''+rcmd_change+'\')"> 팔로우</div><br>'+
+            '</div>'
+        )
+        $("#refresh_target_"+rcmd).attr('id', 'refresh_target_'+rcmd_change)
+        recommends_index+=1;
+    }
+}
+function append_following(admin) {
+    $("#following-div").append(
+        '<div class="ui grid">'+
+        '<div class="center aligned three column row">'+
+        '<div class="column">'+
+        '<a href="../../../channel/'+admin+'"><i class="feed blue icon"></i></a>'+
+        '</div>'+
+        '<div class="column">'+
+        '<a href="/channel/'+admin+'/">'+admin+'</a>'+
+        '</div>'+
+        '<div class="column">'+
+        '<button class="ui blue mini button"  id="recommend_{{d.channel.admin}}" onclick="unfollow_button('+admin+')">팔로우</button>'+
+        '</div></div></div>')
+}
+// function append_recommend(person, target){
+//     $("#"+target).html(
+//         '<div class="'
+// }
+/*function append_recommend(recommend) {
+
+}
+function more_recommend(recommend) {
+    $.ajax({
+        url: '/users/{{request.user.username}}/following/',
+        type: 'POST',
+        data: {
+            'flag': 'recommend-scrolling',
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        success: function(result){
+            if(result['flag']){
+                recommends = result['data']
+                for (var i = 0; i < recommends.length; i++) {
+                    console.log(recommends[i])
+                }
+            }
+        }
+    })
+}*/
+
+function unfollow_button(button_to_change){
+    console.log('unfollow_button'+button_to_change)
+    $('#recommend_'+button_to_change).attr('class','ui basic blue label');
+    $('#recommend_'+button_to_change).attr('onclick','follow_button(\''+button_to_change+'\')');
+    $.post("/channel/"+button_to_change+"/",
+        {
+            'flag':'unfollow',
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        function(result) {
+        }
+    );
+}
+function follow_button(button_to_change){
+    console.log('follow_button'+button_to_change)
+    $('#recommend_'+button_to_change).attr('class','ui blue label');
+    $('#recommend_'+button_to_change).attr('onclick','unfollow_button(\''+button_to_change+'\')');
+    $.post("/channel/"+button_to_change+"/",
+        {
+            'flag':'follow',
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        function(result) {
+        }
+    );
+}
+$(document).scroll(function(e){
+    if(following_scroll == false){
+        return
+    }
+    // grab the scroll amount and the window height
+    var scrollAmount = $(window).scrollTop();
+    var documentHeight = $(document).height();
+    // calculate the percentage the user has scrolled down the page
+    var scrollPercent = (scrollAmount / documentHeight) * 100;
+    console.log(scrollPercent)
+
+    if(scrollPercent > 9) {
+        following_scroll = false
+        $.ajax({
+            url: '/users/{{request.user.username}}/following/',
+            type: 'POST',
+            data: {
+                'flag': 'following-scrolling',
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(result){
+                if(result['flag']){
+                    followings = result['data']
+                    for (var i = 0; i < followings.length; i++) {
+                        append_following(followings[i].channel.admin)
+                    }
+                    following_scroll = result['next_page']
+                }
+            }
+        })
+    }
+});
+
+</script>
+{% endblock %}
+{% block body %}
+<!--리코멘드 리스트 시작-->
+<div class="ui stackable grid container" id="recommend_div">
+<div class="three column row">
+<!--for 문 시작 -->
+{% for recommend in recommend_follow_list %}
+    {% if forloop.counter <= 3 %}
+    <div class="column" id="refresh_target_{{recommend}}">
+    <div class="ui center aligned segment">
+        <div class="floating ui basic label" onclick="refresh_follow('{{recommend}}')"><i class="delete icon"></i></div>
+        <i class="user icon"></i><!--아이콘이나 썸네일-->
+        {{ recommend }}<br><!--추천하는대상이름-->
+        <div class="ui blue basic label" id="recommend_{{recommend}}" onclick="follow_button('{{recommend}}')"> 팔로우</div><br>
+        <!--팔로우 버튼-->
+    </div>
+    </div>
+    {% endif %}
+{% endfor %}
+</div>
+</div>
+
+<h1 class="ui centered header">following</h1>
+<div class="ui divider"></div>
+<div id="following-div">
+{% for d in data %}
+    <div class="ui grid">
+      {% if d.channel.admin == request.user.username %}
+      {% else %}
+      <div class="center aligned three column row">
+         <div class="column">
+            <a href="../../../channel/{{d.channel.admin}}"><i class="feed blue icon"></i></a>
+         </div>
+          <div class="column">
+            <a href="/channel/{{d.channel.admin}}/">{{d.channel.admin}}</a>
+          </div>
+          <div class="column">
+            <button class="ui blue label"  id="recommend_{{d.channel.admin}}" onclick="unfollow_button('{{d.channel.admin}}')">팔로우</button>
+            <!--팔로우 여부 체크안할 예정이면 채널로 가기 버튼으로 바꾸면됨-->
+          </div>
+        </div>
+        {% endif %}
+   </div>
+{% endfor %}
+</div>
+{% endblock %}

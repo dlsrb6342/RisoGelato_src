@@ -1,0 +1,45 @@
+{% extends "myapp/base.html" %}
+{% block extrahead %}
+    <title>Tag Detail</title>
+{% endblock %}
+<!--body-->
+{% block body %}
+	<div class="ui two column grid">
+		<div class="column">
+	    	<h1 class="ui orange huge header">
+	    		<div class="content">
+	    			{{tag.name}}
+	    		</div>
+	    	</h1>
+	    </div>
+    	<div class="column">
+    		<h4 class="ui right floated red header">TAG COUNT : {{tag.count}}</h4>
+    	</div>
+    </div>
+	<div class="ui divider"></div>
+    <div class="ui divided items">
+	    {% for post in tag.posts %}
+	    	<div class="item">
+	    		<div class="ui tiny circular image" style="max-height:80px; max-width:80px">
+    				<img src="http://192.168.1.214:9100{{post.thumbnail_addr}}" height="150" width="150">
+	    		</div>
+	        	<div class="content">
+	        		<div class="header">
+			        		<a href="/posts/{{post.id}}/">{{post.title}}</a>
+			        		<h5 class="ui right floated grey header">by <a href="/channel/{{post.created_by}}">{{post.created_by}}</a></h5>
+		        	</div>
+			        <div class="description">
+			        	<div class="right floated">
+						  <a class="ui basic left pointing red label">
+			        		<i class="heart icon"></i> Like : {{post.like_count}}
+						  </a>
+						  <a class="ui basic left pointing blue label">
+			        		<i class="heart icon"></i> Hit : {{post.hit_count}}
+						  </a>
+						</div>
+			        </div>
+			     </div>
+	     	</div>   
+	    {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,302 @@
+{% extends "myapp/base.html" %}
+{% block extrahead %}
+    <script>
+    $(document).ready(function(){
+
+        {% for comment in post.comments %}
+            {% if request.user.username == comment.username %}
+                append_comment({{comment.id}}, '{{ comment.text }}', '{{ comment.username }}', true)
+            {% else %}
+                append_comment({{comment.id}}, '{{ comment.text }}', '{{ comment.username }}', false)
+            {% endif %}
+        {% endfor %}
+
+        var TagString = '{{post.tag_string}}';
+        var TagList = TagString.split('#');
+        if(TagList.length==1)
+        {
+
+        }
+        else{
+            $("#tag").append("<p>.</p><p>.</p><p>.</p>");
+        }
+        for(var i = 1; i < TagList.length; i++){
+            $("#tag").append('<a href="/tag/'+TagList[i].trim()+'">#' + TagList[i].trim() + " <a>");
+        }
+        $('#meta_{{post.id}}').append(jQuery.timeago('{{ post.created_at}}'));
+
+        $("#like").click(function(){
+            if($("#like").attr("aria-pressed") == "false"){
+                $.post("/posts/{{pk}}/",
+                    {
+                        'flag':'like',
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    function() {
+                        $("#like").attr("aria-pressed", "true");
+                        $("#like").attr("class", "ui blue right floated button");
+                        var like_count= parseInt($("#like_count").text());
+                        $("#like_count").html(like_count+1); 
+                    }
+                );
+            }
+            else{
+                 $.post("/posts/{{pk}}/",
+                    {
+                        'flag':'unlike',
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    function() {
+                        $("#like").attr("aria-pressed", "false");
+                        $("#like").attr("class", "ui blue right floated basic button");
+                        var like_count= parseInt($("#like_count").text());
+                        $("#like_count").html(like_count-1);
+                    }
+                );
+            }
+        });
+        $("#comment").click(function(){
+            var Text = $("#Text").val();
+            console.log(Text.length);
+            if ( Text ) {
+                $.post("/posts/{{pk}}/",
+                    {
+                        'flag': 'comment',
+                        'text': Text,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    function(result) {
+                        append_comment(result['cid'], Text, '{{request.user.username}}', true)
+                        $("#Text").val('');
+                    }
+                );
+            }
+            else {
+                alert("댓글을 입력하세요")
+            };
+        });
+        $("#delete").click(function(){
+            $.post("/posts/",{'pk': {{pk}}, 'csrfmiddlewaretoken': '{{ csrf_token }}'},
+                function() {
+                    alert("삭제되었습니다.");
+                    $(location).attr('href', '/feed/');
+                }
+            )
+        });
+        $('.ui.dropdown').dropdown();
+
+    });
+    function co_edit(cid){
+        $("#co"+cid+"-div").hide();
+        $("#co"+cid+"-div2").hide();
+        $("#EditText"+cid).val($("#co"+cid+"-text").text().trim())
+        $("#co"+cid+"-temp").show();
+    }
+    function co_cancel(cid){
+
+        $("#co"+cid+"-div").show();
+        $("#co"+cid+"-div2").show();
+        $("#co"+cid+"-temp").hide();
+    }
+    function co_submit(cid){
+        var Text = $("#EditText" + cid).val();
+        var csrftoken = $.cookie('csrftoken');
+        if (Text){
+            function csrfSafeMethod(method) {
+                // these HTTP methods do not require CSRF protection
+                return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+            }
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    }
+                }
+            });
+            $.ajax({
+                url: '/posts/{{pk}}/',
+                type: 'PUT',
+                data: {
+                    'flag': 'co-edit',
+                    'text': Text,
+                    'cid': cid,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(){
+                    $("#co"+cid+"-text").text(Text);
+                    $("#co"+cid+"-div").show();
+                    $("#co"+cid+"-div2").show();
+                    $("#co"+cid+"-temp").hide();
+                },
+                error: function(error){
+                    console.log(error);
+                }
+            });
+        }
+        else{
+            alert("댓글을 입력하세요");
+        }
+
+    }
+    function co_delete(cid){
+        var csrftoken = $.cookie('csrftoken');
+        function csrfSafeMethod(method) {
+            // these HTTP methods do not require CSRF protection
+            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+        $.ajax({
+            url: '/posts/{{pk}}',
+            type: 'DELETE',
+            data: {
+                'flag': 'co-delete',
+                'cid': cid,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(){
+                $("#co"+cid+"-div").hide();
+                $("#co"+cid+"-div2").hide();
+            }
+        })
+    }
+
+
+    function append_comment(cid, text, username, flag) {
+        var str = '' +
+        '<div class="ui grid" id="co'+cid+'temp">'+
+            '<div class="ten wide column" id="co'+cid+'-div"><span id="co'+cid+'-text"> '+ text +'  </span>'+
+              '<a class="ui blue basic label" href="/channel/'+username+'/"> by '+ username +'</a>'+
+            '</div>';
+        if(flag){
+            str = str +
+            '<div class="sixteen wide column" id="co'+cid+'-temp" >'+
+              '<input class="ui basic label" type="text" name="EditText'+cid+'" id="EditText'+cid+'">'+
+              '<button class="ui tiny basic right floated button" onclick="co_cancel('+cid+')">취소</button>'+
+              '<button class="ui tiny primary right floated button" onclick="co_submit('+cid+')">작성</button>'+                  
+            '</div>'+
+            '<div class="six wide right aligned column" id="co'+cid+'-div2">'+
+              '<div class="ui icon right pointing dropdown">'+
+              '<i class="ellipsis vertical icon"></i>'+
+              '<div class="menu">'+
+                '<div class="item" onclick="co_edit('+cid+')">수정</div>'+
+                '<div class="item" onclick="co_delete('+cid+')">삭제</div>'+
+              '</div>'+
+            '</div>';
+        }
+        str = str + '</div>';
+        $("#comment_div").append(str);
+        $('#co'+cid+'-temp').hide();
+        $('.ui.dropdown').dropdown();
+    }
+    function more_comment(pk){
+        $.post("/feed/",
+            {
+                'pk': pk,
+                'flag': 'comment-scrolling',
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            function(result) {
+                if(result['flag']){
+                    comments = result['comments']
+                    for (var i = 0; i < comments.length; i++) {
+                        appendComment(comments[i].id, comments[i].text, comments[i].username, pk)
+                    }
+                }
+                next_page = result['next_page']
+                if(next_page != true){
+                    $("#more-comment").html("")
+                }
+            }
+        )
+    }   
+
+    </script>
+    <style>
+        button:hover {
+            text-decoration:underline;
+        }
+    </style>
+{% endblock %}
+<!--body-->
+{% block body %}
+    <div class="ui centered card" style="width: 30em;">
+        <div class="content">
+            <div class="header">{{post.title}}
+                <div class="right floated"><a class="ui blue basic label" href="../../channel/{{post.created_by}}/">by {{ post.created_by }}</a>
+                </div>
+            </div>
+            <div class="meta" id="meta_{{post.id}}">
+            </div>
+        </div>
+        <!--header ended-->
+        <div class="image">
+            <img class="ui small image" src="http://192.168.1.214:9100{{ post.thumbnail_addr }}">
+        </div>
+        <div class="content">
+            <audio style="width: 100%; margin:auto; display:block;opacity:0.8;color:white;" controls>
+                <source src="http://192.168.1.214:9100{{ post.file_addr }}" type="{{ post.mimetype }}">
+            </audio>
+            <div class="meta">
+                {{post.created_at}}
+            </div>
+        </div>
+        <div class="content">
+            {{post.text}}
+            <div id="tag"></div>
+        </div>
+        <div class="content" id="comment_div">
+        </div>
+        <div class="extra content">
+            <form class="ui reply form">
+                <div class="field">
+                <textarea class="textarea" type="text" name="text" id="Text" rows="3"></textarea>
+                </div>
+                {% if request.user.is_authenticated %}
+                    {% if request.user.username == post.created_by %}
+                    <div class="ui icon bottom left pointing dropdown button">
+                      <i class="wrench icon"></i>
+                      <div class="menu">
+                        <div class="item" id="edit" name="edit" onclick = "location.href='/posts/{{pk}}/edit'">수정</div>
+                        <div class="item" id="delete" name="delete">삭제</div>
+                      </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                <div class="ui blue labeled submit icon right floated button" type="submit" name="comment" id="comment">
+                    <i class="icon edit"></i> 댓글달기
+                </div>
+                {% if UserLike %}
+                <div class="ui labeled right floated button" tabindex="0">
+                    <div class="ui blue right floated basic button" aria-pressed="false" id="like">
+                        <i class="thumbs up icon"></i>좋아요
+                    </div>
+                    <a class="ui basic blue left pointing label" id="like_count" onclick="LikeList({{post.id}})">
+                        {{post.like_count}}
+                    </a>
+                </div>
+                {% else %}
+                 <div class="ui labeled right floated button" tabindex="0">
+                    <div class="ui blue right floated button" aria-pressed="true" id="like">
+                        <i class="thumbs up icon"></i>좋아요
+                    </div>
+                    <a class="ui basic blue left pointing label" id="like_count" onclick="LikeList({{post.id}})">
+                        {{post.like_count}}
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    <div class="ui small basic modal" id="comment-modal">
+        <div class="content" id="modal_content"></div>
+        <div class="ui divider"></div>
+        <div class="content" id="comment-div"></div>
+    </div>
+{% endblock %}
