@@ -143,7 +143,7 @@ class UserSignIn(APIView):
         user = User.objects.get(email=email)
 
         text = b64decode(password.encode())
-        with open('/home/smilegate/RisoGelato/myapp/views/rsa_1024_priv.pem', 'rb') as f:
+        with open('/home/smilegate/rsa_1024_priv.pem', 'rb') as f:
             key = f.read()
 
         decrypted = decrypt(key, text)
