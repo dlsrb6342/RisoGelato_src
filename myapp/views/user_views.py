@@ -17,14 +17,14 @@ class UserDetail(APIView):
     def get(self, request, pk):
         user = get_object_or_404(User, username=pk)
         serializer = UserSerializer(user)
-        return Response({ 'user':serializer.data })
+        return Response({'user': serializer.data})
 
     def put(self, request, pk):
         user = get_object_or_404(User, username=pk)
         serializer = UserSerializer(user, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({ 'user': serializer.data })
+            return Response({'user': serializer.data})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
